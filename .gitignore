@@ -1,0 +1,22 @@
+# Dependencies
+node_modules/
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Logs
+*.log
+server.log
+server.err
+logs/
+
+# macOS
+.DS_Store
+
+# Build output
+dist/
+
+# OS
+Thumbs.db
