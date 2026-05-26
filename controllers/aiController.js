@@ -1,7 +1,8 @@
 const axios = require("axios");
 
-const OLLAMA_URL   = process.env.OLLAMA_URL   || "http://localhost:11434";
-const OLLAMA_MODEL = process.env.OLLAMA_MODEL || "llama3.1";
+const GROQ_API_KEY = process.env.GROQ_API_KEY;
+const GROQ_MODEL   = process.env.GROQ_MODEL || "llama-3.1-8b-instant";
+const GROQ_URL     = "https://api.groq.com/openai/v1/chat/completions";
 
 const INDIA_CITIES = [
     "Agra","Ahmedabad","Ajmer","Allahabad","Amritsar","Andaman Islands","Auli",
@@ -17,25 +18,23 @@ const INDIA_CITIES = [
     "Ujjain","Varanasi","Varkala","Vijayawada","Visakhapatnam","Wayanad",
 ];
 
-// Call Ollama and parse the JSON response.
-// format:"json" tells Ollama to constrain output to valid JSON.
-async function ollamaJSON(prompt, maxTokens = 1500) {
+async function groqJSON(prompt, maxTokens = 1500) {
     const response = await axios.post(
-        `${OLLAMA_URL}/api/chat`,
+        GROQ_URL,
         {
-            model:    OLLAMA_MODEL,
-            stream:   false,
-            format:   "json",
-            options:  { num_predict: maxTokens, temperature: 0.4 },
-            messages: [{ role: "user", content: prompt }],
+            model:           GROQ_MODEL,
+            messages:        [{ role: "user", content: prompt }],
+            max_tokens:      maxTokens,
+            temperature:     0.4,
+            response_format: { type: "json_object" },
         },
-        { timeout: 120000 }
+        {
+            headers: { Authorization: `Bearer ${GROQ_API_KEY}`, "Content-Type": "application/json" },
+            timeout: 30000,
+        }
     );
-
-    const raw = response.data?.message?.content?.trim() ?? "";
-    // Strip accidental markdown fences if the model adds them
-    const cleaned = raw.replace(/^```json\s*/i, "").replace(/^```\s*/i, "").replace(/```\s*$/i, "");
-    return JSON.parse(cleaned);
+    const raw = response.data.choices[0].message.content.trim();
+    return JSON.parse(raw);
 }
 
 // ── Template-based instant itinerary ─────────────────────────────────────────
@@ -268,7 +267,7 @@ Respond ONLY with valid JSON in this exact structure:
 }`;
 
     try {
-        const itinerary = await ollamaJSON(prompt, 2000);
+        const itinerary = await groqJSON(prompt, 2000);
         res.json(itinerary);
     } catch (err) {
         console.error("Itinerary generation error:", err.message);
@@ -325,41 +324,39 @@ Return ONLY this JSON structure — every place must be included:
 
     try {
         const response = await axios.post(
-            `${OLLAMA_URL}/api/chat`,
+            GROQ_URL,
             {
-                model:    OLLAMA_MODEL,
-                stream:   true,
-                format:   "json",
-                options:  { num_predict: 2000, temperature: 0.2 },
+                model:       GROQ_MODEL,
+                stream:      true,
+                max_tokens:  2000,
+                temperature: 0.2,
                 messages: [
                     { role: "system", content: systemMsg },
                     { role: "user",   content: userPrompt },
                 ],
             },
-            { responseType: "stream", timeout: 180000 }
+            {
+                headers:      { Authorization: `Bearer ${GROQ_API_KEY}`, "Content-Type": "application/json" },
+                responseType: "stream",
+                timeout:      60000,
+            }
         );
-
-        let buffer = "";
 
         response.data.on("data", chunk => {
             const lines = chunk.toString().split("\n").filter(l => l.trim());
             for (const line of lines) {
+                if (!line.startsWith("data: ")) continue;
+                const payload = line.slice(6);
+                if (payload === "[DONE]") { res.write(`data: [DONE]\n\n`); res.end(); return; }
                 try {
-                    const parsed = JSON.parse(line);
-                    const token = parsed.message?.content ?? "";
-                    if (token) {
-                        buffer += token;
-                        res.write(`data: ${JSON.stringify({ token })}\n\n`);
-                    }
-                    if (parsed.done) {
-                        res.write(`data: [DONE]\n\n`);
-                        res.end();
-                    }
+                    const parsed = JSON.parse(payload);
+                    const token  = parsed.choices?.[0]?.delta?.content ?? "";
+                    if (token) res.write(`data: ${JSON.stringify({ token })}\n\n`);
                 } catch {}
             }
         });
 
-        response.data.on("end", () => { if (!res.writableEnded) res.end(); });
+        response.data.on("end",   () => { if (!res.writableEnded) res.end(); });
         response.data.on("error", err => {
             console.error("Stream error:", err.message);
             if (!res.writableEnded) res.end();
@@ -558,7 +555,7 @@ Return ONLY valid JSON, no extra text:
 Rules: severity must be "info" (great time), "warning" (caution advised), or "alert" (not recommended). suitable is false only when severity is "alert".`;
 
     try {
-        const result = await ollamaJSON(prompt, 250);
+        const result = await groqJSON(prompt, 250);
         if (!result.message || !result.severity) throw new Error("incomplete LLM response");
         return res.json({
             suitable:   result.severity !== "alert",
@@ -646,7 +643,7 @@ exports.parseSearch = async (req, res) => {
 
     // No keyword match → try Ollama with a short prompt and short timeout
     try {
-        const result = await ollamaJSON(
+        const result = await groqJSON(
             `Indian city for: "${query.trim()}". Cities: ${INDIA_CITIES.join(",")}. JSON: {"city":"...","confidence":"medium"}`,
             40
         );
@@ -699,27 +696,34 @@ Answer travel questions helpfully. Structure every response clearly:
 
     try {
         const response = await axios.post(
-            `${OLLAMA_URL}/api/chat`,
+            GROQ_URL,
             {
-                model:   OLLAMA_MODEL,
-                stream:  true,
-                options: { num_predict: 300, temperature: 0.5 },
+                model:       GROQ_MODEL,
+                stream:      true,
+                max_tokens:  300,
+                temperature: 0.5,
                 messages: [
                     { role: "system", content: system },
                     ...messages,
                 ],
             },
-            { responseType: "stream", timeout: 60000 }
+            {
+                headers:      { Authorization: `Bearer ${GROQ_API_KEY}`, "Content-Type": "application/json" },
+                responseType: "stream",
+                timeout:      60000,
+            }
         );
 
         response.data.on("data", chunk => {
             const lines = chunk.toString().split("\n").filter(l => l.trim());
             for (const line of lines) {
+                if (!line.startsWith("data: ")) continue;
+                const payload = line.slice(6);
+                if (payload === "[DONE]") { res.write(`data: [DONE]\n\n`); res.end(); return; }
                 try {
-                    const parsed = JSON.parse(line);
-                    const token = parsed.message?.content ?? "";
+                    const parsed = JSON.parse(payload);
+                    const token  = parsed.choices?.[0]?.delta?.content ?? "";
                     if (token) res.write(`data: ${JSON.stringify({ token })}\n\n`);
-                    if (parsed.done) { res.write(`data: [DONE]\n\n`); res.end(); }
                 } catch {}
             }
         });
