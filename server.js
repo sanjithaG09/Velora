@@ -18,6 +18,7 @@ app.use(cors({
     "http://localhost:5173",
     "https://tourism-swmi.onrender.com",
     "https://velora-2jh86oz0z-sanjithagunuganti-7987s-projects.vercel.app",
+    "https://velora-iota-puce.vercel.app",
   ],
   credentials: true,
   allowedHeaders: ["Content-Type", "Authorization"],
