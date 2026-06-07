@@ -18,6 +18,7 @@ app.use(cors({
     "http://localhost:5173",
     "https://tourism-swmi.onrender.com",
     "https://velora-2jh86oz0z-sanjithagunuganti-7987s-projects.vercel.app",
+    "https://velora-iota-puce.vercel.app",
   ],
   credentials: true,
   allowedHeaders: ["Content-Type", "Authorization"],
@@ -37,8 +38,6 @@ const routeRoutes        = require("./routes/routeRoutes");
 const analyticsRoutes    = require("./routes/analyticRoutes");
 const alertRoutes        = require("./routes/alertRoutes");
 const sosRoutes          = require("./routes/sosRoutes");
-const aiRoutes           = require("./routes/aiRoutes");
-
 // ✅ Mount routes (correct)
 app.use("/api", placeRoutes);
 app.use("/api", authRoutes);
@@ -47,7 +46,6 @@ app.use("/api", routeRoutes);
 app.use("/api", analyticsRoutes);
 app.use("/api", alertRoutes);
 app.use("/api", sosRoutes);
-app.use("/api", aiRoutes);
 
 // ✅ Health check route (VERY useful)
 app.get("/api/health", (req, res) => {

@@ -1,5 +1,4 @@
 import VeloraLogo from "../components/VeloraLogo";
-import FloatingAssistant from "../components/FloatingAssistant";
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { auth } from "../firebase";
@@ -294,7 +293,6 @@ export default function Analytics() {
 
         </div>
       </div>
-      <FloatingAssistant pageContext="Velora trip analytics and travel statistics" />
     </>
   );
 }

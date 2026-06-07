@@ -1,5 +1,4 @@
 import VeloraLogo from "../components/VeloraLogo";
-import FloatingAssistant from "../components/FloatingAssistant";
 import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { auth } from "../firebase";
@@ -241,14 +240,6 @@ export default function MyTrips() {
   const totalKm = trips.reduce((s, t) => s + (t.totalDistanceKm || 0), 0).toFixed(1);
   const upcoming = trips.filter(t => t.date && new Date(t.date) >= new Date()).length;
 
-  const assistantContext = (() => {
-    if (!trips.length) return "My trips page. No trips saved yet.";
-    const list = trips.map(t =>
-      `${t.city} (${t.date || "no date"}, ${(t.places || []).length} places: ${(t.places || []).slice(0, 5).join(", ")})`
-    ).join("; ");
-    return `My saved trips page. Total ${trips.length} trips, ${totalKm} km travelled. Trips: ${list}.`;
-  })();
-
   return (
     <>
       <Styles />
@@ -489,7 +480,6 @@ export default function MyTrips() {
           )}
         </div>
       </div>
-      <FloatingAssistant pageContext="my saved trips" context={assistantContext} />
     </>
   );
 }

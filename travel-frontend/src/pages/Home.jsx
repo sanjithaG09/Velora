@@ -1,5 +1,4 @@
 import VeloraLogo from "../components/VeloraLogo";
-import FloatingAssistant from "../components/FloatingAssistant";
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { auth } from "../firebase";
@@ -785,8 +784,6 @@ export default function Home() {
   const [suggActive, setSuggActive]   = useState(-1);
   const searchWrapRef = useRef(null);
   const [destImages, setDestImages] = useState({});
-  const [aiSearching, setAiSearching] = useState(false);
-  const [aiHint, setAiHint]           = useState("");
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentBg(prev => (prev + 1) % bgImages.length), 8000);
@@ -901,45 +898,13 @@ export default function Home() {
     navigate("/explore", { state: { query: city } });
   };
 
-  const handleSearch = async (e) => {
+  const handleSearch = (e) => {
     e.preventDefault();
     const q = query.trim();
     if (!q) return;
     setSuggestions([]);
-
-    // Direct city match — skip AI
     const directMatch = INDIA_CITIES.find(c => c.toLowerCase() === q.toLowerCase());
-    if (directMatch) {
-      navigate("/explore", { state: { query: directMatch } });
-      return;
-    }
-
-    // Natural language — ask Claude to interpret
-    setAiSearching(true);
-    setAiHint("");
-    try {
-      const res  = await fetch(`${API}/api/ai/search`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ query: q }),
-      });
-      const data = await res.json();
-      if (res.ok && data.city) {
-        if (data.city.toLowerCase() !== q.toLowerCase()) {
-          setAiHint(`Searching "${data.city}" for: ${q}`);
-          await new Promise(r => setTimeout(r, 900)); // brief pause so user sees the hint
-        }
-        navigate("/explore", { state: { query: data.city } });
-      } else {
-        // Fall back to raw query
-        navigate("/explore", { state: { query: q } });
-      }
-    } catch {
-      navigate("/explore", { state: { query: q } });
-    } finally {
-      setAiSearching(false);
-      setAiHint("");
-    }
+    navigate("/explore", { state: { query: directMatch || q } });
   };
 
   const handleDestinationClick = (placeName) => {
@@ -1031,10 +996,7 @@ export default function Home() {
           <div className="search-wrap" ref={searchWrapRef}>
             <form className="search-bar" onSubmit={handleSearch}>
               <div className="search-icon-wrap">
-                {aiSearching
-                  ? <span style={{ width:18, height:18, border:"2px solid rgba(0,0,0,0.15)", borderTopColor:"#111", borderRadius:"50%", display:"inline-block", animation:"spin .7s linear infinite" }} />
-                  : <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#111" strokeWidth="2.4"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
-                }
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#111" strokeWidth="2.4"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
               </div>
               <input
                 className="search-input"
@@ -1043,18 +1005,11 @@ export default function Home() {
                 onChange={handleQueryChange}
                 onKeyDown={handleQueryKeyDown}
                 autoComplete="off"
-                disabled={aiSearching}
               />
-              <button type="submit" className="search-btn" disabled={aiSearching}>
-                {aiSearching ? "…" : "Search"}
+              <button type="submit" className="search-btn">
+                Search
               </button>
             </form>
-
-            {aiHint && (
-              <div style={{ marginTop:10, padding:"8px 16px", background:"rgba(139,92,246,0.12)", border:"1px solid rgba(139,92,246,0.25)", borderRadius:10, fontSize:12.5, color:"#c4b5fd", fontWeight:600, textAlign:"center" }}>
-                ✨ {aiHint}
-              </div>
-            )}
 
             {suggestions.length > 0 && (
               <div className="city-suggestions">
@@ -1185,7 +1140,6 @@ export default function Home() {
           </div>
         </div>
       )}
-      <FloatingAssistant pageContext="Velora travel planning home page" />
     </>
   );
 }

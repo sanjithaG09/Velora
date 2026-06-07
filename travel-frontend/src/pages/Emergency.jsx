@@ -1,5 +1,4 @@
 import VeloraLogo from "../components/VeloraLogo";
-import FloatingAssistant from "../components/FloatingAssistant";
 import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { auth } from "../firebase";
@@ -692,7 +691,6 @@ export default function Emergency() {
 
         </div>
       </div>
-      <FloatingAssistant pageContext="travel emergency contacts and safety information in India" />
     </>
   );
 }

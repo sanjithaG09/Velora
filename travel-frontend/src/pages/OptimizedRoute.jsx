@@ -1,81 +1,9 @@
 import VeloraLogo from "../components/VeloraLogo";
-import React, { useState, useEffect, useCallback, useRef, useMemo } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { auth } from "../firebase";
 import { signOut } from "firebase/auth";
 
-// ── Inline markdown renderer for chat bubbles ──────────────────────────────
-function ChatText({ text }) {
-  if (!text) return null;
-
-  const inlineParse = (str) => {
-    const parts = str.split(/(\*\*[^*]+\*\*)/g);
-    return parts.map((p, i) =>
-      p.startsWith("**") && p.endsWith("**")
-        ? <strong key={i} style={{ color: "#fff", fontWeight: 700 }}>{p.slice(2, -2)}</strong>
-        : p
-    );
-  };
-
-  const lines = text.split("\n");
-  const nodes = [];
-  let i = 0;
-
-  while (i < lines.length) {
-    const line = lines[i].trim();
-
-    // Blank line → spacer
-    if (!line) { nodes.push(<div key={i} style={{ height: 6 }} />); i++; continue; }
-
-    // Bullet list item: lines starting with - or • or *
-    if (/^[-•*]\s/.test(line)) {
-      const bullets = [];
-      while (i < lines.length && /^[-•*]\s/.test(lines[i].trim())) {
-        bullets.push(lines[i].trim().replace(/^[-•*]\s/, ""));
-        i++;
-      }
-      nodes.push(
-        <ul key={`ul-${i}`} style={{ margin: "6px 0", paddingLeft: 18, display: "flex", flexDirection: "column", gap: 4 }}>
-          {bullets.map((b, bi) => (
-            <li key={bi} style={{ listStyleType: "disc", color: "rgba(255,255,255,0.82)", fontSize: 13, lineHeight: 1.55 }}>
-              {inlineParse(b)}
-            </li>
-          ))}
-        </ul>
-      );
-      continue;
-    }
-
-    // Numbered list item
-    if (/^\d+\.\s/.test(line)) {
-      const items = [];
-      while (i < lines.length && /^\d+\.\s/.test(lines[i].trim())) {
-        items.push(lines[i].trim().replace(/^\d+\.\s/, ""));
-        i++;
-      }
-      nodes.push(
-        <ol key={`ol-${i}`} style={{ margin: "6px 0", paddingLeft: 20, display: "flex", flexDirection: "column", gap: 4 }}>
-          {items.map((item, ii) => (
-            <li key={ii} style={{ color: "rgba(255,255,255,0.82)", fontSize: 13, lineHeight: 1.55 }}>
-              {inlineParse(item)}
-            </li>
-          ))}
-        </ol>
-      );
-      continue;
-    }
-
-    // Regular paragraph line
-    nodes.push(
-      <p key={i} style={{ margin: "2px 0", fontSize: 13, lineHeight: 1.6, color: "rgba(255,255,255,0.82)" }}>
-        {inlineParse(line)}
-      </p>
-    );
-    i++;
-  }
-
-  return <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>{nodes}</div>;
-}
 import { CurrentWeatherBlock, getCityHero } from "./Explore";
 
 const API = import.meta.env.VITE_API_URL || "http://localhost:3000";
@@ -229,50 +157,6 @@ const Styles = () => (
     .or-loading-spinner{width:44px;height:44px;border-radius:50%;border:3.5px solid rgba(245,166,35,0.15);border-top-color:var(--gold);animation:orSpin .9s linear infinite;}
     .or-loading-text{font-size:15px;color:var(--text-sub);font-weight:500;}
 
-    /* AI Itinerary */
-    .or-ai-card{background:linear-gradient(135deg,#0f0f1a 0%,#141428 50%,#0f1a1f 100%);border:1px solid rgba(139,92,246,0.25);border-radius:20px;overflow:hidden;margin-bottom:24px;}
-    .or-ai-header{display:flex;align-items:center;justify-content:space-between;padding:20px 24px 18px;border-bottom:1px solid rgba(139,92,246,0.15);}
-    .or-ai-title{display:flex;align-items:center;gap:10px;font-size:14px;font-weight:700;color:#fff;}
-    .or-ai-icon{width:32px;height:32px;border-radius:9px;background:rgba(139,92,246,0.18);border:1px solid rgba(139,92,246,0.3);display:flex;align-items:center;justify-content:center;font-size:15px;}
-    .or-ai-badge{font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;background:rgba(139,92,246,0.18);border:1px solid rgba(139,92,246,0.3);color:#a78bfa;letter-spacing:.5px;}
-    .or-ai-body{padding:22px 24px 26px;}
-    .or-ai-generate-btn{display:inline-flex;align-items:center;gap:9px;padding:13px 22px;border-radius:12px;border:none;background:linear-gradient(135deg,#7c3aed,#6d28d9);color:#fff;font-family:'Sora',sans-serif;font-size:14px;font-weight:700;cursor:pointer;transition:all .2s;width:100%;justify-content:center;box-shadow:0 4px 20px rgba(124,58,237,0.35);}
-    .or-ai-generate-btn:hover{background:linear-gradient(135deg,#6d28d9,#5b21b6);transform:translateY(-1px);}
-    .or-ai-generate-btn:disabled{opacity:.55;cursor:not-allowed;transform:none;}
-    .or-ai-summary{background:rgba(139,92,246,0.07);border:1px solid rgba(139,92,246,0.18);border-radius:12px;padding:14px 18px;margin-bottom:20px;font-size:13.5px;color:rgba(255,255,255,0.8);line-height:1.7;}
-    .or-ai-protip{display:flex;align-items:flex-start;gap:10px;background:rgba(245,166,35,0.07);border:1px solid rgba(245,166,35,0.2);border-radius:12px;padding:13px 16px;margin-bottom:24px;font-size:13px;color:rgba(255,255,255,0.75);line-height:1.65;}
-    .or-ai-places{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px;}
-    @media(max-width:700px){.or-ai-places{grid-template-columns:1fr;}}
-    .or-ai-place{background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:14px;padding:16px 18px;}
-    .or-ai-place-header{display:flex;align-items:center;gap:10px;margin-bottom:12px;}
-    .or-ai-place-num{width:26px;height:26px;border-radius:50%;background:rgba(139,92,246,0.2);border:1.5px solid rgba(139,92,246,0.4);color:#a78bfa;font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
-    .or-ai-place-name{font-size:14px;font-weight:700;color:#fff;}
-    .or-ai-time-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;}
-    .or-ai-chip{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:20px;font-size:11.5px;font-weight:600;}
-    .or-ai-chip.time{background:rgba(59,130,246,0.12);color:#93c5fd;border:1px solid rgba(59,130,246,0.2);}
-    .or-ai-chip.duration{background:rgba(34,197,94,0.1);color:#86efac;border:1px solid rgba(34,197,94,0.18);}
-    .or-ai-tip{font-size:12.5px;color:rgba(255,255,255,0.65);line-height:1.6;margin-bottom:8px;}
-    .or-ai-food{display:flex;align-items:center;gap:6px;font-size:12px;color:rgba(255,255,255,0.5);}
-    .or-ai-food strong{color:rgba(255,255,255,0.7);}
-
-    /* Chat */
-    .or-chat-divider{display:flex;align-items:center;gap:12px;margin:24px 0 18px;color:rgba(255,255,255,0.25);font-size:11px;font-weight:600;letter-spacing:.5px;}
-    .or-chat-divider::before,.or-chat-divider::after{content:'';flex:1;height:1px;background:rgba(255,255,255,0.08);}
-    .or-chat-msgs{display:flex;flex-direction:column;gap:14px;max-height:420px;overflow-y:auto;padding-right:6px;margin-bottom:14px;}
-    .or-chat-msgs::-webkit-scrollbar{width:4px}.or-chat-msgs::-webkit-scrollbar-thumb{background:#333;border-radius:2px;}
-    .or-chat-bubble{max-width:88%;padding:12px 16px;border-radius:14px;font-size:13px;line-height:1.6;}
-    .or-chat-bubble.user{align-self:flex-end;background:rgba(124,58,237,0.22);border:1px solid rgba(139,92,246,0.3);color:#e9d5ff;border-bottom-right-radius:4px;white-space:pre-wrap;}
-    .or-chat-bubble.assistant{align-self:flex-start;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:rgba(255,255,255,0.82);border-bottom-left-radius:4px;}
-    .or-chat-bubble.assistant ul,.or-chat-bubble.assistant ol{margin:4px 0;}
-    .or-chat-bubble.streaming{opacity:.85;}
-    .or-chat-form{display:flex;gap:8px;align-items:flex-end;}
-    .or-chat-input{flex:1;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);border-radius:12px;padding:10px 14px;color:#fff;font-family:'Sora',sans-serif;font-size:13px;resize:none;min-height:42px;max-height:100px;outline:none;transition:border-color .2s;}
-    .or-chat-input::placeholder{color:rgba(255,255,255,0.3);}
-    .or-chat-input:focus{border-color:rgba(139,92,246,0.5);}
-    .or-chat-send{padding:10px 16px;border-radius:12px;border:none;background:rgba(124,58,237,0.7);color:#fff;font-family:'Sora',sans-serif;font-size:13px;font-weight:700;cursor:pointer;transition:background .2s;flex-shrink:0;height:42px;}
-    .or-chat-send:hover:not(:disabled){background:rgba(124,58,237,0.9);}
-    .or-chat-send:disabled{opacity:.45;cursor:not-allowed;}
-
     /* Weather block (reused classes from Explore.jsx) */
     .ex-weather-block{background:linear-gradient(135deg,#0f2027 0%,#1a3a4a 50%,#2c5364 100%);border:1px solid rgba(96,165,250,0.2);border-radius:20px;padding:22px 26px;margin-bottom:24px;animation:orFadeUp .5s cubic-bezier(0.22,1,0.36,1) both;}
     .ex-weather-live-badge{display:inline-flex;align-items:center;gap:6px;background:rgba(34,197,94,0.15);border:1px solid rgba(34,197,94,0.3);color:#4ade80;font-size:11px;font-weight:700;letter-spacing:.5px;padding:4px 10px;border-radius:20px;margin-bottom:14px;}
@@ -371,8 +255,8 @@ const Styles = () => (
       }
       /* Hide chrome that's not part of the trip */
       .or-nav, .or-btn-emergency, .or-action-row, .or-rest-prefs,
-      .or-rest-row, .or-rest-panel, .or-chat-form, .or-map-open-link,
-      .or-ai-generate-btn, .or-pdf-btn { display: none !important; }
+      .or-rest-row, .or-rest-panel, .or-map-open-link,
+      .or-pdf-btn { display: none !important; }
 
       /* Layout */
       .or-hero { margin-top: 0 !important; height: 140px !important; }
@@ -384,11 +268,8 @@ const Styles = () => (
       .or-map-iframe { height: 420px !important; display: block !important; }
       .or-map-loading, .or-map-placeholder { display: none !important; }
 
-      /* Chat conversation — expand scroll so nothing is cut off */
-      .or-chat-msgs { max-height: none !important; overflow: visible !important; }
-
       /* Avoid splitting cards across pages */
-      .or-card, .or-ai-card { page-break-inside: avoid; margin-bottom: 16px; }
+      .or-card { page-break-inside: avoid; margin-bottom: 16px; }
 
       /* Restaurant waypoints stay visible */
       .or-rest-waypoint { display: flex !important; }
@@ -432,15 +313,6 @@ export default function OptimizedRoute() {
 
   const [saved, setSaved]             = useState(false);
   const [saving, setSaving]           = useState(false);
-
-  const [itinerary, setItinerary]               = useState(null);
-  const [itineraryLoading, setItineraryLoading] = useState(false);
-
-  const [chatMessages, setChatMessages] = useState([]);
-  const [chatInput, setChatInput]       = useState("");
-  const [chatLoading, setChatLoading]   = useState(false);
-  const [chatStreamText, setChatStreamText] = useState("");
-  const chatBottomRef = useRef(null);
 
   // Restaurant suggestions
   const [diet, setDiet]                   = useState("veg");   // "veg" | "nonveg"
@@ -640,89 +512,6 @@ export default function OptimizedRoute() {
   const handleSavePDF = () => {
     document.title = `Velora – ${city} Trip`;
     window.print();
-  };
-
-  const handleGenerateItinerary = async () => {
-    if (itineraryLoading) return;
-    setItineraryLoading(true);
-    setItinerary(null);
-
-    try {
-      const res = await fetch(`${API}/api/ai/itinerary/fast`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ city, date, route, placesData, weather }),
-      });
-
-      if (!res.ok) {
-        showToast("Could not generate itinerary. Try again.", "error");
-        return;
-      }
-
-      const data = await res.json();
-      setItinerary(data);
-      setChatMessages([]);
-    } catch {
-      showToast("Network error generating itinerary", "error");
-    } finally {
-      setItineraryLoading(false);
-    }
-  };
-
-  const handleChat = async (e) => {
-    e?.preventDefault();
-    const text = chatInput.trim();
-    if (!text || chatLoading) return;
-
-    const userMsg = { role: "user", content: text };
-    const updatedMessages = [...chatMessages, userMsg];
-    setChatMessages(updatedMessages);
-    setChatInput("");
-    setChatLoading(true);
-    setChatStreamText("");
-
-    try {
-      const res = await fetch(`${API}/api/ai/chat/stream`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ city, route, messages: updatedMessages }),
-      });
-
-      if (!res.ok || !res.body) {
-        showToast("Could not get a response. Try again.", "error");
-        setChatLoading(false);
-        return;
-      }
-
-      const reader = res.body.getReader();
-      const decoder = new TextDecoder();
-      let reply = "";
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        const chunk = decoder.decode(value, { stream: true });
-        for (const line of chunk.split("\n")) {
-          const trimmed = line.trim();
-          if (!trimmed.startsWith("data:")) continue;
-          const payload = trimmed.slice(5).trim();
-          if (payload === "[DONE]") break;
-          try {
-            const { token } = JSON.parse(payload);
-            reply += token;
-            setChatStreamText(reply);
-          } catch {}
-        }
-      }
-
-      setChatMessages(prev => [...prev, { role: "assistant", content: reply }]);
-      setChatStreamText("");
-    } catch {
-      showToast("Network error", "error");
-    } finally {
-      setChatLoading(false);
-      setTimeout(() => chatBottomRef.current?.scrollIntoView({ behavior: "smooth" }), 50);
-    }
   };
 
   const handleLogout = async () => {
@@ -1215,124 +1004,6 @@ export default function OptimizedRoute() {
               </div>
             </div>
 
-          </div>
-
-          {/* ── AI Itinerary card (full width below route + map) ── */}
-          <div className="or-ai-card">
-              <div className="or-ai-header">
-                <div className="or-ai-title">
-                  <div className="or-ai-icon">✨</div>
-                  AI Day Planner
-                  <span className="or-ai-badge">INSTANT</span>
-                </div>
-              </div>
-              <div className="or-ai-body">
-                {!itinerary && (
-                  <>
-                    <p style={{ fontSize: 13, color: "rgba(255,255,255,0.55)", marginBottom: 18, lineHeight: 1.65 }}>
-                      Generate a personalised itinerary with best visit times, insider tips, and nearby food for each stop on your route.
-                    </p>
-                    {itineraryLoading ? (
-                      <div style={{ textAlign: "center", padding: "18px 0" }}>
-                        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 10 }}>
-                          <span className="or-spinner" />
-                          <span style={{ fontSize: 14, color: "rgba(255,255,255,0.75)", fontWeight: 600 }}>
-                            Building your itinerary…
-                          </span>
-                        </div>
-                      </div>
-                    ) : (
-                      <button
-                        className="or-ai-generate-btn"
-                        onClick={handleGenerateItinerary}
-                        disabled={route.length === 0}
-                      >
-                        ✨  Generate AI Itinerary
-                      </button>
-                    )}
-                  </>
-                )}
-
-                {itinerary && (
-                  <>
-                    <div className="or-ai-summary">{itinerary.summary}</div>
-
-                    {itinerary.proTip && (
-                      <div className="or-ai-protip">
-                        <span style={{ fontSize: 16, flexShrink: 0 }}>💡</span>
-                        <span><strong style={{ color: "var(--gold)" }}>Pro tip:</strong> {itinerary.proTip}</span>
-                      </div>
-                    )}
-
-                    <div className="or-ai-places">
-                      {itinerary.places?.map((p, i) => (
-                        <div key={p.name} className="or-ai-place">
-                          <div className="or-ai-place-header">
-                            <div className="or-ai-place-num">{i + 1}</div>
-                            <div className="or-ai-place-name">{p.name}</div>
-                          </div>
-                          <div className="or-ai-time-row">
-                            {p.bestTime && <span className="or-ai-chip time">🕐 {p.bestTime}</span>}
-                            {p.duration && <span className="or-ai-chip duration">⏱ {p.duration}</span>}
-                          </div>
-                          {p.tip && <div className="or-ai-tip">💬 {p.tip}</div>}
-                          {p.nearbyFood && (
-                            <div className="or-ai-food">🍽️ <strong>Nearby:</strong>&nbsp;{p.nearbyFood}</div>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-
-                    <button
-                      style={{ marginTop: 18, width: "100%", padding: "10px", borderRadius: 10, border: "1px solid rgba(139,92,246,0.3)", background: "transparent", color: "#a78bfa", fontFamily: "'Sora',sans-serif", fontSize: 13, fontWeight: 600, cursor: "pointer" }}
-                      onClick={() => { setItinerary(null); setChatMessages([]); }}
-                    >
-                      ↺ Regenerate
-                    </button>
-
-                    {/* ── Conversational follow-up ── */}
-                    <div className="or-chat-divider">Ask a follow-up question</div>
-
-                    {chatMessages.length > 0 && (
-                      <div className="or-chat-msgs">
-                        {chatMessages.map((m, i) => (
-                          <div key={i} className={`or-chat-bubble ${m.role}`}>
-                            {m.role === "assistant"
-                              ? <ChatText text={m.content} />
-                              : m.content}
-                          </div>
-                        ))}
-                        {chatLoading && chatStreamText && (
-                          <div className="or-chat-bubble assistant streaming">
-                            <ChatText text={chatStreamText} />
-                          </div>
-                        )}
-                        {chatLoading && !chatStreamText && (
-                          <div className="or-chat-bubble assistant streaming" style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                            <span className="or-spinner" style={{ width: 14, height: 14 }} /> Thinking…
-                          </div>
-                        )}
-                        <div ref={chatBottomRef} />
-                      </div>
-                    )}
-
-                    <form className="or-chat-form" onSubmit={handleChat}>
-                      <textarea
-                        className="or-chat-input"
-                        placeholder={`Ask about your ${city} trip… e.g. "What should I wear?" or "Best time to avoid crowds?"`}
-                        value={chatInput}
-                        onChange={e => setChatInput(e.target.value)}
-                        onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleChat(); } }}
-                        rows={1}
-                        disabled={chatLoading}
-                      />
-                      <button type="submit" className="or-chat-send" disabled={chatLoading || !chatInput.trim()}>
-                        {chatLoading ? <span className="or-spinner" style={{ width: 14, height: 14 }} /> : "Send"}
-                      </button>
-                    </form>
-                  </>
-                )}
-              </div>
           </div>
 
         </div>

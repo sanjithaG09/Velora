@@ -1,5 +1,4 @@
 import VeloraLogo from "../components/VeloraLogo";
-import FloatingAssistant from "../components/FloatingAssistant";
 import React, { useState, useMemo, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { auth } from "../firebase";
@@ -1135,14 +1134,6 @@ export default function Suggestions() {
 
   const budgeLabel = { budget: "Budget", moderate: "Moderate", luxury: "Luxury" };
 
-  const assistantContext = useMemo(() => {
-    const list = filtered.slice(0, 30).map(d =>
-      `${d.name} (${d.budget}, ${d.categories.join("/")}, seasons: ${d.seasons.join("/")})`
-    ).join(", ");
-    const filters = [season && `season: ${season}`, category && `category: ${category}`, budgetFilter && `budget: ${budgetFilter}`].filter(Boolean).join(", ");
-    return `India travel destinations page.\nActive filters: ${filters || "none"}.\nShowing ${filtered.length} destinations: ${list}.`;
-  }, [filtered, season, category, budgetFilter]);
-
   return (
     <>
       <Styles />
@@ -1482,7 +1473,6 @@ export default function Suggestions() {
         </div>
 
       </div>
-      <FloatingAssistant pageContext="India travel destination suggestions" context={assistantContext} />
     </>
   );
 }

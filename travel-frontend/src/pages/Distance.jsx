@@ -1,5 +1,4 @@
 import VeloraLogo from "../components/VeloraLogo";
-import FloatingAssistant from "../components/FloatingAssistant";
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { auth } from "../firebase";
@@ -310,14 +309,6 @@ export default function Distance() {
   };
 
   // ── Render ────────────────────────────────────────────────────────────────
-  const assistantContext = (() => {
-    let ctx = "Travel distance calculator page.";
-    if (originText && destText) ctx += ` Route entered: ${originText} → ${destText}.`;
-    if (result) ctx += ` Distance: ${result.distance?.text}. Drive time: ${result.duration?.text}.`;
-    else if (!originText) ctx += " No route entered yet.";
-    return ctx;
-  })();
-
   return (
     <>
       <Styles />
@@ -533,7 +524,6 @@ export default function Distance() {
           )}
         </div>
       </div>
-      <FloatingAssistant pageContext="travel distance calculator" context={assistantContext} />
     </>
   );
 }

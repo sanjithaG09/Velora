@@ -1,5 +1,4 @@
 import VeloraLogo from "../components/VeloraLogo";
-import FloatingAssistant from "../components/FloatingAssistant";
 import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { auth } from "../firebase";
@@ -1023,16 +1022,6 @@ export default function Trips() {
 
   const today = new Date().toISOString().split("T")[0];
 
-  const assistantContext = (() => {
-    let ctx = "Trip planning page.";
-    if (newCity || searchCity) ctx += ` Planning a trip to: ${newCity || searchCity}.`;
-    if (places.length) ctx += ` Available places to pick: ${places.map(p => `${p.name} (⭐${p.rating})`).join(", ")}.`;
-    if (selectedPlaces.length) ctx += ` Selected places: ${selectedPlaces.map(p => p.name).join(", ")}.`;
-    if (route) ctx += ` Optimized route: ${route.route?.join(" → ")}.`;
-    if (trips.length) ctx += ` Existing saved trips: ${trips.map(t => t.city).join(", ")}.`;
-    return ctx;
-  })();
-
   return (
     <>
       <StyleSheet />
@@ -1528,7 +1517,6 @@ export default function Trips() {
           </div>
         </div>
       </div>
-      <FloatingAssistant pageContext={`planning a trip to ${newCity || searchCity || "India"}`} city={newCity || searchCity} context={assistantContext} />
     </>
   );
 }

@@ -1,5 +1,4 @@
 import VeloraLogo from "../components/VeloraLogo";
-import FloatingAssistant from "../components/FloatingAssistant";
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { auth } from "../firebase";
@@ -336,8 +335,6 @@ export default function Explore() {
   const [startText,  setStartText]  = useState("");
   const [endText,    setEndText]    = useState("");
 
-  const [dateSuggestion, setDateSuggestion] = useState(null);
-  const [dateSuggLoading, setDateSuggLoading] = useState(false);
   const [startLocLoading, setStartLocLoading] = useState(false);
   const [endLocLoading,   setEndLocLoading]   = useState(false);
 
@@ -465,22 +462,6 @@ export default function Explore() {
     );
   };
 
-  // Fetch AI date suggestion whenever date + city are set
-  useEffect(() => {
-    if (!tripDate || !city) return;
-    setDateSuggestion(null);
-    setDateSuggLoading(true);
-    const selectedObjs = placesData.filter(p => selectedPlaces.includes(p.name));
-    fetch(`${API}/api/ai/date-suggestion`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ city, date: tripDate, places: selectedObjs, weather }),
-    })
-      .then(r => r.ok ? r.json() : null)
-      .then(d => { if (d) setDateSuggestion(d); })
-      .catch(() => {})
-      .finally(() => setDateSuggLoading(false));
-  }, [tripDate, city]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handlePlanTrip = async () => {
     if (selectedPlaces.length < 2) return showToast("Select at least 2 places", "error");
@@ -549,14 +530,6 @@ export default function Explore() {
   const today   = new Date().toISOString().split("T")[0];
   const heroBg  = getCityHero(city);
 
-  const assistantContext = useMemo(() => {
-    if (!city || !placesData.length) return "";
-    const all = placesData.map(p => `${p.name} (⭐${p.rating})`).join(", ");
-    const selected = selectedPlaces.length
-      ? `Selected so far: ${selectedPlaces.map(p => p.name).join(", ")}.`
-      : "No places selected yet.";
-    return `City: ${city}.\nAvailable places on this page: ${all}.\n${selected}`;
-  }, [city, placesData, selectedPlaces]);
 
   return (
     <>
@@ -771,38 +744,6 @@ export default function Explore() {
                     value={tripDate} onChange={e => setTripDate(e.target.value)}
                   />
 
-                  {/* ── AI Date Suggestion ── */}
-                  {dateSuggLoading && (
-                    <div style={{ display:"flex", alignItems:"center", gap:10, padding:"10px 14px", marginBottom:14, background:"rgba(139,92,246,0.07)", border:"1px solid rgba(139,92,246,0.2)", borderRadius:10 }}>
-                      <span className="ex-spinner" style={{ borderTopColor:"#a78bfa", borderColor:"rgba(139,92,246,0.25)", width:14, height:14 }} />
-                      <span style={{ fontSize:12.5, color:"rgba(255,255,255,0.5)" }}>Checking best travel time…</span>
-                    </div>
-                  )}
-                  {!dateSuggLoading && dateSuggestion && (() => {
-                    const s = dateSuggestion;
-                    const colors = {
-                      info:    { bg:"rgba(34,197,94,0.08)",  border:"rgba(34,197,94,0.25)",  text:"#86efac", icon:"✅" },
-                      warning: { bg:"rgba(245,166,35,0.08)", border:"rgba(245,166,35,0.25)", text:"#fde68a", icon:"⚠️" },
-                      alert:   { bg:"rgba(239,68,68,0.08)",  border:"rgba(239,68,68,0.25)",  text:"#fca5a5", icon:"🚨" },
-                    };
-                    const c = colors[s.severity] || colors.info;
-                    return (
-                      <div style={{ padding:"12px 16px", marginBottom:14, background:c.bg, border:`1px solid ${c.border}`, borderRadius:10 }}>
-                        <div style={{ display:"flex", alignItems:"flex-start", gap:8 }}>
-                          <span style={{ fontSize:14, flexShrink:0 }}>{c.icon}</span>
-                          <div style={{ fontSize:12.5, color:"rgba(255,255,255,0.75)", lineHeight:1.65 }}>
-                            {s.message}
-                            {s.bestMonths?.length > 0 && (
-                              <div style={{ marginTop:5, fontSize:11.5, color:c.text, fontWeight:600 }}>
-                                Best months: {s.bestMonths.join(", ")}
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })()}
-
                   {/* ── Start / End Anchors ── */}
                   <div className="ex-anchor-section">
                     <div className="ex-anchor-title">
@@ -883,7 +824,6 @@ export default function Explore() {
           </div>
         </div>
       </div>
-      <FloatingAssistant pageContext={`exploring tourist places in ${city || "India"}`} city={city} context={assistantContext} />
     </>
   );
 }
