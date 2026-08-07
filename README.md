@@ -1,6 +1,6 @@
-# Velora — AI-Powered Travel Planner
+# Velora — Planner
 
-Velora is a full-stack travel planning application for India. It combines Google Maps, real-time weather, AI-generated itineraries, and a context-aware travel assistant to help users discover destinations, plan optimized routes, and manage trips end-to-end.
+Velora is a full-stack travel planning application for India. It combines Google Maps, real-time weather, plan optimized routes, and manage trips end-to-end.
 
 ---
 
